@@ -1,5 +1,9 @@
 # Concurrent Javascript
 
+```
+$ npm install cjs
+```
+
 # Examples
 
 ## read/write
