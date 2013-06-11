@@ -14,4 +14,21 @@ channel.write(123, function() {
 });
 ```
 
+``` js
+var cjs = require('cjs');
+var channel = cjs.newChannel();
+(function loop() {
+	channel.read(function(value) {
+		console.log('value read', value);
+		loop();
+	});	
+}());
+(function loop() {
+	channel.write(123, function() {
+		console.log('value written');
+		loop();
+	});
+}());
+```
+
 
