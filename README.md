@@ -31,4 +31,19 @@ var channel = cjs.newChannel();
 }());
 ```
 
+``` js
+var cjs = require('cjs');
+var channel1 = cjs.newChannel();
+var channel2 = cjs.newChannel();
+cjs.select([
+	channel1.readEvent(),
+	channel2.readEvent()
+]);
+channel1.write(1, function() {
+	console.log('1 written');
+});
+channel2.write(2, function() {
+	console.log('2 written');
+});
+```
 
