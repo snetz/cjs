@@ -1,5 +1,9 @@
 # Concurrent Javascript
 
+# Examples
+
+## read/write
+
 ``` js
 var cjs = require('cjs');
 var channel = cjs.newChannel();
@@ -11,9 +15,7 @@ channel.write(123, function() {
 });
 ```
 
-# Examples
-
-## read/write
+## forever
 
 ``` js
 var cjs = require('cjs');
