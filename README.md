@@ -1,7 +1,4 @@
-Readme
-======
-
-Concurrent ML in Javascript.
+# Concurrent Javascript
 
 ``` js
 var cjs = require('cjs');
@@ -13,6 +10,10 @@ channel.write(123, function() {
 	console.log('value written');
 });
 ```
+
+# Examples
+
+## read/write
 
 ``` js
 var cjs = require('cjs');
@@ -30,6 +31,8 @@ var channel = cjs.newChannel();
 	});
 }());
 ```
+
+## readEvent/writeEvent
 
 ``` js
 var cjs = require('cjs');
