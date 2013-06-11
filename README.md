@@ -47,7 +47,9 @@ var channel2 = cjs.newChannel();
 cjs.select([
 	channel1.readEvent(),
 	channel2.readEvent()
-]);
+], function(error, value) {
+	console.log('value read on either channel1 or channel2', value);
+});
 channel1.write(1, function() {
 	console.log('1 written');
 });
