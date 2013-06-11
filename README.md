@@ -1,6 +1,6 @@
 Readme
 ======
 
-read me!
+Concurrent ML in Javascript.
 
 
