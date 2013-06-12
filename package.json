@@ -20,5 +20,8 @@
   "gitHead": "c56380c14c669cc76899fade976d59039e9b6676",
   "bugs": {
     "url": "https://github.com/snetz/cjs/issues"
+  },
+  "dependencies": {
+    "cjs-channel": "*"
   }
 }
