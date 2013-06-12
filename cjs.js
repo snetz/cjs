@@ -1,43 +1,4 @@
-function Channel() {
-    this.readers = [];
-    this.writers = [];
-    this.syncing = false;
-}
-
-Channel.prototype.read = function (cont) {
-    var reader = { cont: cont };
-    this.readers.push(reader);
-    if (!this.syncing) this.sync();
-    return function () {
-        var index = this.readers.indexOf(reader);
-        this.readers.splice(index, 1);
-    }.bind(this);
-};
-
-Channel.prototype.write = function (value, cont) {
-    var writer = { cont: cont, value: value };
-    this.writers.push(writer);
-    if (!this.syncing) this.sync();
-    return function () {
-        var index = this.writers.indexOf(writer);
-        this.writers.splice(index, 1);
-    }.bind(this);
-};
-
-Channel.prototype.sync = function () {
-    this.syncing = true;
-    setImmediate(function () {
-        if (this.readers.length > 0 && this.writers.length > 0) {
-            var reader = this.readers.shift();
-            var writer = this.writers.shift();
-            writer.cont();
-            reader.cont(writer.value);
-            this.sync();
-        } else {
-            this.syncing = false;
-        }
-    }.bind(this));
-};
+var Channel = require('cjs-channel');
 
 Channel.prototype.readEvent = function () {
     return new Event(function (baseEvents, wrapFunction, abortChannel, cont) {
@@ -246,46 +207,7 @@ function newChannel() {
     return new Channel();
 }
 
-function newBuffer() {
-    var inputChannel = newChannel();
-    var outputChannel = newChannel();
-    var queue = [];
-
-    (function loop() {
-        if (queue.length === 0) {
-            inputChannel.readEvent().sync(function (error, value) {
-                queue.push(value);
-                loop();
-            });
-        } else {
-            choose([
-                inputChannel.readEvent().wrap(function (value) {
-                    queue.push(value);
-                    loop();
-                }),
-                outputChannel.writeEvent(queue[0]).wrap(function (value) {
-                    queue.shift();
-                    loop();
-                })
-            ]).sync();
-        }
-    }());
-
-    function send(value, cont) {
-        return inputChannel.writeEvent(value).sync(cont);
-    }
-
-    function recvEvent(pred) {
-        return outputChannel.readEvent();
-    }
-
-    return {
-        send: send,
-        recvEvent: recvEvent
-    };
-}
-
-var cjs = {
+module.exports = {
     newChannel: newChannel,
     guard: guard,
     wrap: wrap,
@@ -297,8 +219,4 @@ var cjs = {
     timeout: timeout,
     never: never,
     always: always,
-    // misc data structures
-    newBuffer: newBuffer
 };
-
-module.exports = cjs;
