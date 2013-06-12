@@ -1,0 +1,24 @@
+{
+  "name": "cjs",
+  "version": "0.0.0",
+  "description": "Concurrent Javascript",
+  "main": "cjs.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/snetz/cjs.git"
+  },
+  "keywords": [
+    "concurrent",
+    "async"
+  ],
+  "author": "snetz",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "gitHead": "c56380c14c669cc76899fade976d59039e9b6676",
+  "bugs": {
+    "url": "https://github.com/snetz/cjs/issues"
+  }
+}
