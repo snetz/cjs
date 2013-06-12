@@ -1,6 +1,6 @@
 {
   "name": "cjs",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Concurrent Javascript",
   "main": "cjs.js",
   "scripts": {
