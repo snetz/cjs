@@ -1,4 +1,43 @@
-var Channel = require('cjs-channel');
+function Channel() {
+    this.readers = [];
+    this.writers = [];
+    this.syncing = false;
+}
+
+Channel.prototype.read = function (cont) {
+    var reader = { cont: cont };
+    this.readers.push(reader);
+    if (!this.syncing) this.sync();
+    return function () {
+        var index = this.readers.indexOf(reader);
+        this.readers.splice(index, 1);
+    }.bind(this);
+};
+
+Channel.prototype.write = function (value, cont) {
+    var writer = { cont: cont, value: value };
+    this.writers.push(writer);
+    if (!this.syncing) this.sync();
+    return function () {
+        var index = this.writers.indexOf(writer);
+        this.writers.splice(index, 1);
+    }.bind(this);
+};
+
+Channel.prototype.sync = function () {
+    this.syncing = true;
+    setImmediate(function () {
+        if (this.readers.length > 0 && this.writers.length > 0) {
+            var reader = this.readers.shift();
+            var writer = this.writers.shift();
+            writer.cont();
+            reader.cont(writer.value);
+            this.sync();
+        } else {
+            this.syncing = false;
+        }
+    }.bind(this));
+};
 
 Channel.prototype.readEvent = function () {
     return new Event(function (baseEvents, wrapFunction, abortChannel, cont) {
@@ -188,15 +227,12 @@ function sync(event, cont) {
                     cancelFunctions.forEach(function (cancelFunction) {
                         cancelFunction();
                     });
-                    //setImmediate(function () {
                     baseEvent.wrapFunction(value, cont);
-                    //});
                     (function spawnAbortFunction() {
                         abortChannel.write(baseEvent, spawnAbortFunction);
                     }());
                 });
                 cancelFunctions.push(cancelFunction);
-                //NEXTTICK(helper.bind(null, n + 1));
                 helper(n + 1);
             }
         }(0));
@@ -208,6 +244,7 @@ function newChannel() {
 }
 
 module.exports = {
+    Channel: Channel,
     newChannel: newChannel,
     guard: guard,
     wrap: wrap,
@@ -218,5 +255,5 @@ module.exports = {
     sync: sync,
     timeout: timeout,
     never: never,
-    always: always,
+    always: always
 };
