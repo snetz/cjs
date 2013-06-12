@@ -1,5 +1,8 @@
 # Concurrent Javascript
 
+This is preliminary documentation.
+Full docs are coming soon. 
+
 ```
 $ npm install cjs
 ```
