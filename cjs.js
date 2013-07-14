@@ -1,3 +1,51 @@
+
+var channel1 = new Channel();
+var channel2 = new Channel();
+ 
+function spawnProcess1() {
+    (function loop() {
+        var cancel1 = channel1.read(function(value) {
+            cancel2();
+            console.log('channel 1', value);
+            loop();
+        });
+        var cancel2 = channel1.read(function(value) {
+            cancel1();
+            console.log('channel 2', value);
+            loop();
+        });
+    })();
+}
+ 
+function spawnProcess2() {
+    (function loop(n) {
+        channel1.write(n, function() {
+            loop(n + 1);
+        });
+    })(0);
+}
+ 
+function spawnProcess3() {
+    (function loop(n) {
+        channel2.write(n, function() {
+            loop(n * 1);
+        });
+    })(0);
+}
+
+spawnProcess1();
+spawnProcess2();
+spawnProcess3();
+
+
+
+
+
+
+
+
+
+
 function Channel() {
     this.readers = [];
     this.writers = [];
