@@ -1,3 +1,32 @@
+var channel1 = new Channel();
+var channel2 = new Channel();
+ 
+function spawnProcess1() {
+    (function loop() {
+        sync(choose([
+            channel1.readEvent().wrap(function(value, callback) {
+                callback('channel 1: ' + value)
+            }),
+            channel2.readEvent().wrap(function(value, callback) {
+                callback('channel 2: ' + value)
+            })
+        ]), function(error, value) {
+            console.log('value', value);
+        });
+    })();
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 var channel1 = new Channel();
 var channel2 = new Channel();
