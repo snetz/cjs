@@ -1,3 +1,18 @@
+node browser.js\
+ --chrome-executable=/opt/google/chrome/chrome\
+ --chrome-extension=chrome-extension\
+ --session-directory=sess1\
+ --vnc-password=secret\
+ --vnc-port=5901\
+ --browser-port=10001\
+ --client-port=10002\
+ --display=28
+
+
+
+
+
+
 
 curl -v -X POST browser.scycloud.com/sessions
 
