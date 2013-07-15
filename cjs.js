@@ -1,3 +1,26 @@
+
+curl -v -X POST browser.scycloud.com/sessions
+
+> POST /sessions HTTP/1.1
+> User-Agent: curl/7.26.0
+> Host: browser.scycloud.com
+> Accept: */*
+
+< HTTP/1.1 200 OK
+< x-powered-by: Express
+< date: Mon, 15 Jul 2013 14:53:54 GMT
+< connection: keep-alive
+< transfer-encoding: chunked
+{
+    "client_url": "ws://144.76.8.39:9003",
+    "client_port": 9003,
+    "browser_port": 9004,
+    "vnc_port": 9005,
+    "display": 101
+}
+
+
+
 var channel1 = new Channel();
 var channel2 = new Channel();
  
