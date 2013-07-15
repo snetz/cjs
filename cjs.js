@@ -1,3 +1,52 @@
+var browser = new ChromeClient({
+    serviceUrl: 'http://browser.scycloud.com/sessions'
+});
+browser.on('error', function (error) {
+    throw error;
+});
+browser.on('ready', function () {
+    console.log('browser ready');
+
+    browser.on('pageOpened', function (page) {
+        console.log('new page opened');
+    });
+    browser.on('pageClosed', function (page) {
+        console.log('page closed');
+    });
+    browser.on('pageChanged', function (page) {
+        console.log('page changed');
+    });
+
+    browser.openPage('http://google.de', function (error, page) {
+        if (error) throw error;
+        console.log('openPage OK');
+        page.getDomAsJson(function (error, json) {
+            console.log('getDomAsHtml');
+            if (error) throw error;
+            //console.log(json);
+        });
+
+        page.getForms(function (error, forms) {
+            if (error) throw error;
+            //forms[0].submit();
+            console.log(forms);
+        });
+
+    });
+
+    browser.evalAsync(function (args, callback) {
+        callback(null, args.a + args.b);
+    }, {
+        a: 1,
+        b: 123
+    }, function (error, result) {
+        if (error) throw error;
+        console.log('sum', result);
+    });
+});
+
+
+
 var ws = require('ws');
 var request = require('request');
 var events = require('events');
