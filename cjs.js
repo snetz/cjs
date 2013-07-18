@@ -115,8 +115,8 @@ function timeout(event, ms) {
                 cont(null, { timeout: true });
             })
         ]).wrapAbort(function () {
-            clearTimeout(timeout);
-        }));
+                clearTimeout(timeout);
+            }));
     });
 }
 
@@ -203,32 +203,8 @@ function randomize(l) {
     }
 }
 
-function pollBaseEvents(baseEvents, cont) {
-    var cancelFunctions = [];
-
-    function ret(baseEvent, value) {
-        cancelFunctions.forEach(function (cancel) {
-            cancel();
-        });
-        cont(baseEvent, value);
-    }
-
-    baseEvents.forEach(function (baseEvent) {
-        var pollResult = baseEvent.poll();
-        if (pollResult !== null) {
-            ret(baseEvent, pollResult.value);
-        } else {
-            var cancel = baseEvent.wait(function (value) {
-                ret(baseEvent, value);
-            });
-            cancelFunctions.push(cancel);
-        }
-    });
-}
-
 function sync(event, cont) {
-    cont = cont || function () {
-    };
+    cont = cont || function () { };
     var baseEvents = [];
     var wrapFunction = function (value, cont) {
         cont(null, value);
@@ -241,42 +217,47 @@ function sync(event, cont) {
         }());
     }
     function pollBaseEvents() {
-    (function loop(n) {
-	    if(n === baseEvents.length) {
-		waitBaseEvents();
-	    } else {
-		var baseEvent = baseEvents[n];
-		var result = baseEvent.poll();
-		if(result !== null) {
-		    ret(baseEvent, result.value);
-		} else {
-		    setImmediate(function() { loop(n + 1); });
-		}
-	    }
-	})(0);
+        (function loop(n) {
+            if (n === baseEvents.length) {
+                waitBaseEvents();
+            } else {
+                var baseEvent = baseEvents[n];
+                var result = baseEvent.poll();
+                if (result !== null) {
+                    ret(baseEvent, result.value);
+                } else {
+                    setImmediate(function () {
+                        loop(n + 1);
+                    });
+                }
+            }
+        })(0);
     }
     function waitBaseEvents() {
         var cancelFunctions = [];
-	var done = false;
-	(function loop(n) {
-	    if(!done && n !== baseEvents.length) {
-		var baseEvent = baseEvents[n];
-		var cancelFunction = baseEvent.wait(function (value) {
+        var done = false;
+        (function loop(n) {
+            if (!done && n !== baseEvents.length) {
+                var baseEvent = baseEvents[n];
+                var cancelFunction = baseEvent.wait(function (value) {
                     cancelFunctions.forEach(function (cancelFunction) {
-			cancelFunction();
+                        cancelFunction();
                     });
-		    done = true;
-		    ret(baseEvent, value);
-		});
-		cancelFunctions.push(cancelFunction);
-		setImmediate(function() { loop(n + 1); });
-	    }
-	})(0);
+                    done = true;
+                    ret(baseEvent, value);
+                });
+                cancelFunctions.push(cancelFunction);
+                setImmediate(function () {
+                    loop(n + 1);
+                });
+            }
+        })(0);
     }
+
     event.prepare(baseEvents, wrapFunction, abortChannel, function (error) {
         if (error) return cont(error);
         randomize(baseEvents);
-	pollBaseEvents();
+        pollBaseEvents();
     });
 }
 
