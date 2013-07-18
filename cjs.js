@@ -1,76 +1,61 @@
-function Channel() {
-    this.readers = [];
-    this.writers = [];
-    this.syncing = false;
-}
+var Channel = require("sync-channel");
 
-Channel.prototype.read = function (cont) {
-    var reader = { cont: cont };
-    this.readers.push(reader);
-    if (!this.syncing) this.sync();
-    return function () {
-        var index = this.readers.indexOf(reader);
-        this.readers.splice(index, 1);
-    }.bind(this);
-};
-
-Channel.prototype.write = function (value, cont) {
-    var writer = { cont: cont, value: value };
-    this.writers.push(writer);
-    if (!this.syncing) this.sync();
-    return function () {
-        var index = this.writers.indexOf(writer);
-        this.writers.splice(index, 1);
-    }.bind(this);
-};
-
-Channel.prototype.sync = function () {
-    this.syncing = true;
-    setImmediate(function () {
-        if (this.readers.length > 0 && this.writers.length > 0) {
-            var reader = this.readers.shift();
-            var writer = this.writers.shift();
-            writer.cont();
-            reader.cont(writer.value);
-            this.sync();
-        } else {
-            this.syncing = false;
-        }
-    }.bind(this));
-};
+// ----------------------------------------------------------------------------
+// Channel
 
 Channel.prototype.readEvent = function () {
+    var channel = this;
     return new Event(function (baseEvents, wrapFunction, abortChannel, cont) {
-        baseEvents.push(new ReadEvent(this, wrapFunction));
+        var baseEvent = new ReadEvent(channel, wrapFunction);
+        baseEvents.push(baseEvent);
         cont(null);
-    }.bind(this));
+    });
 };
 
 Channel.prototype.writeEvent = function (value) {
+    var channel = this;
     return new Event(function (baseEvents, wrapFunction, abortChannel, cont) {
-        baseEvents.push(new WriteEvent(this, value, wrapFunction));
+        var baseEvent = new WriteEvent(channel, wrapFunction, value);
+        baseEvents.push(baseEvent);
         cont(null);
-    }.bind(this));
+    });
 };
+
+// ----------------------------------------------------------------------------
+// ReadEvent
 
 function ReadEvent(channel, wrapFunction) {
     this.channel = channel;
     this.wrapFunction = wrapFunction;
 }
 
+ReadEvent.prototype.poll = function () {
+    return this.channel.tryRead();
+};
+
 ReadEvent.prototype.wait = function (cont) {
     return this.channel.read(cont);
 };
 
-function WriteEvent(channel, value, wrapFunction) {
+// ----------------------------------------------------------------------------
+// WriteEvent
+
+function WriteEvent(channel, wrapFunction, value) {
     this.channel = channel;
-    this.value = value;
     this.wrapFunction = wrapFunction;
+    this.value = value;
+};
+
+WriteEvent.prototype.poll = function () {
+    return this.channel.tryWrite(this.value) ? { value: null } : null;
 };
 
 WriteEvent.prototype.wait = function (cont) {
     return this.channel.write(this.value, cont);
 };
+
+// ----------------------------------------------------------------------------
+// Event
 
 function Event(prepare) {
     this.prepare = prepare;
@@ -96,6 +81,9 @@ Event.prototype.timeout = function (ms) {
     return timeout(this, ms);
 };
 
+// ----------------------------------------------------------------------------
+// always/never
+
 function always(value) {
     var channel = new Channel();
     (function loop() {
@@ -108,11 +96,15 @@ function never() {
     return new Channel().readEvent();
 }
 
+// ----------------------------------------------------------------------------
+// timeout
+
 function timeout(event, ms) {
     return guard(function (cont) {
         var channel = new Channel();
         var timeout = setTimeout(function () {
-            channel.writeEvent(true).sync(function () {});
+            channel.writeEvent(true).sync(function () {
+            });
         }, ms);
         cont(null, choose([
             event.wrap(function (value, cont) {
@@ -122,9 +114,14 @@ function timeout(event, ms) {
             channel.readEvent().wrap(function (value, cont) {
                 cont(null, { timeout: true });
             })
-        ]).wrapAbort(function () { clearTimeout(timeout); }));
+        ]).wrapAbort(function () {
+            clearTimeout(timeout);
+        }));
     });
 }
+
+// ----------------------------------------------------------------------------
+// operators
 
 function guard(f) {
     return new Event(function (baseEvents, wrapFunction, abortChannel, cont) {
@@ -206,36 +203,80 @@ function randomize(l) {
     }
 }
 
+function pollBaseEvents(baseEvents, cont) {
+    var cancelFunctions = [];
+
+    function ret(baseEvent, value) {
+        cancelFunctions.forEach(function (cancel) {
+            cancel();
+        });
+        cont(baseEvent, value);
+    }
+
+    baseEvents.forEach(function (baseEvent) {
+        var pollResult = baseEvent.poll();
+        if (pollResult !== null) {
+            ret(baseEvent, pollResult.value);
+        } else {
+            var cancel = baseEvent.wait(function (value) {
+                ret(baseEvent, value);
+            });
+            cancelFunctions.push(cancel);
+        }
+    });
+}
+
 function sync(event, cont) {
-    cont = cont || function () {};
+    cont = cont || function () {
+    };
     var baseEvents = [];
     var wrapFunction = function (value, cont) {
         cont(null, value);
     };
     var abortChannel = new Channel();
+    function ret(baseEvent, value) {
+        baseEvent.wrapFunction(value, cont);
+        (function spawnAbortFunction() {
+            abortChannel.write(baseEvent, spawnAbortFunction);
+        }());
+    }
+    function pollBaseEvents() {
+    (function loop(n) {
+	    if(n === baseEvents.length) {
+		waitBaseEvents();
+	    } else {
+		var baseEvent = baseEvents[n];
+		var result = baseEvent.poll();
+		if(result !== null) {
+		    ret(baseEvent, result.value);
+		} else {
+		    setImmediate(function() { loop(n + 1); });
+		}
+	    }
+	})(0);
+    }
+    function waitBaseEvents() {
+        var cancelFunctions = [];
+	var done = false;
+	(function loop(n) {
+	    if(!done && n !== baseEvents.length) {
+		var baseEvent = baseEvents[n];
+		var cancelFunction = baseEvent.wait(function (value) {
+                    cancelFunctions.forEach(function (cancelFunction) {
+			cancelFunction();
+                    });
+		    done = true;
+		    ret(baseEvent, value);
+		});
+		cancelFunctions.push(cancelFunction);
+		setImmediate(function() { loop(n + 1); });
+	    }
+	})(0);
+    }
     event.prepare(baseEvents, wrapFunction, abortChannel, function (error) {
         if (error) return cont(error);
-        var indices = range(0, baseEvents.length - 1);
-        randomize(indices);
-        var cancelFunctions = [];
-        var done = false;
-        (function helper(n) {
-            if (n !== indices.length && !done) {
-                var baseEvent = baseEvents[indices[n]];
-                var cancelFunction = baseEvent.wait(function (value) {
-                    done = true;
-                    cancelFunctions.forEach(function (cancelFunction) {
-                        cancelFunction();
-                    });
-                    baseEvent.wrapFunction(value, cont);
-                    (function spawnAbortFunction() {
-                        abortChannel.write(baseEvent, spawnAbortFunction);
-                    }());
-                });
-                cancelFunctions.push(cancelFunction);
-                helper(n + 1);
-            }
-        }(0));
+        randomize(baseEvents);
+	pollBaseEvents();
     });
 }
 
